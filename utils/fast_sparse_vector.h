@@ -314,7 +314,7 @@ class FastSparseVector {
       return p.second();
     } else {
       swap_local_rbmap();
-      return (*data_.rbmap)[k];  
+      return (*data_.rbmap)[k];
     }
   }
   void swap_local_rbmap() {

@@ -1,10 +1,9 @@
 #!/usr/bin/python
-
+import os
 # EXPERIMENTAL and HACKY version of cdec build in scons
-
 # TODO: Persist these so that you don't have to specify flags every time
 # http://www.scons.org/wiki/SavingVariablesToAFile
-AddOption('--prefix', dest='prefix', type='string', nargs=1, action='store', metavar='DIR', 
+AddOption('--prefix', dest='prefix', type='string', nargs=1, action='store', metavar='DIR',
 		      help='installation prefix')
 AddOption('--with-boost', dest='boost', type='string', nargs=1, action='store', metavar='DIR',
                   help='boost installation directory (if in a non-standard location)')
@@ -16,7 +15,13 @@ AddOption('--efence', dest='efence', action='store_true',
                   help='use electric fence for debugging memory corruptions')
 
 platform = ARGUMENTS.get('OS', Platform())
-include = Split('decoder utils klm mteval training .')
+mac = platform.name=='darwin'
+
+sysp = Split('/usr /usr/local')
+include = Split('decoder utils klm mteval training .') + [x+'/include' for x in sysp]
+libpath=[x+'/lib' for x in sysp]
+libs = Split('boost_program_options boost_serialization boost_thread z')
+ccf = Split('-g -O3 -DHAVE_SCONS')
 env = Environment(PREFIX=GetOption('prefix'),
                       PLATFORM = platform,
 #                      BINDIR = bin,
@@ -24,9 +29,19 @@ env = Environment(PREFIX=GetOption('prefix'),
 #                      LIBDIR = lib,
                       CPPPATH = include,
                       LIBPATH = [],
-                      LIBS = Split('boost_program_options boost_serialization boost_thread z'),
-		      CCFLAGS=Split('-g -O3 -DHAVE_SCONS'))
-
+                      LIBS = libs,
+		      CCFLAGS = ccf)
+if mac:
+    env = Environment(ENV = os.environ,
+                      CPPPATH = include,
+                      LIBPATH = libpath,
+                      #LIBS = libs,
+                      CCFLAGS = ccf,
+                      SHLINKFLAGS = '$LINKFLAGS -dynamic',
+                      SHLIBSUFFIX = '.dylib'
+                      )
+    env['SHLINKFLAGS'] = '$LINKFLAGS -dynamic'
+    env['SHLIBSUFFIX'] = '.dylib'
 
 # Do some autoconf-like sanity checks (http://www.scons.org/wiki/SconsAutoconf)
 conf = Configure(env)
@@ -37,7 +52,6 @@ if not conf.CheckCXX():
 if not conf.CheckFunc('printf'):
     print('!! Your compiler and/or environment is not correctly configured.')
     Exit(1)
-#env = conf.Finish()
 
 boost = GetOption('boost')
 if boost:
@@ -46,9 +60,9 @@ if boost:
               CPPPATH=boost+'/include',
 	      LIBPATH=boost+'/lib')
 
-if not conf.CheckLib('boost_program_options'):
+if not conf.CheckLib('boost_program_options',language='C++'):
    print "Boost library 'boost_program_options' not found"
-   Exit(1)
+   #Exit(1)
 #if not conf.CheckHeader('boost/math/special_functions/digamma.hpp'):
 #   print "Boost header 'digamma.hpp' not found"
 #   Exit(1)
@@ -57,7 +71,7 @@ mpi = GetOption('mpi')
 if mpi:
    if not conf.CheckHeader('mpi.h'):
       print "MPI header 'mpi.h' not found"
-      Exit(1)   
+      Exit(1)
 
 if GetOption('efence'):
    env.Append(LIBS=Split('efence Segfault'))
@@ -99,6 +113,8 @@ def comb(cc, srcs):
    x.extend(srcs)
    return x
 
+#env = conf.Finish()
+
 env.Program(target='decoder/cdec', source=comb('decoder/cdec.cc', srcs))
 # TODO: The various decoder tests
 # TODO: extools
@@ -134,4 +150,3 @@ if mpi:
    env.Program(target='training/mpi_batch_optimize', source=comb('training/mpi_batch_optimize.cc', srcs))
    env.Program(target='training/compute_cllh', source=comb('training/compute_cllh.cc', srcs))
    env.Program(target='training/cllh_filter_grammar', source=comb('training/cllh_filter_grammar.cc', srcs))
-
