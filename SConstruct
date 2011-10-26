@@ -16,11 +16,15 @@ AddOption('--efence', dest='efence', action='store_true',
 
 platform = ARGUMENTS.get('OS', Platform())
 mac = platform.name=='darwin'
-
 sysp = Split('/usr /usr/local')
 include = Split('decoder utils klm mteval training .') + [x+'/include' for x in sysp]
 libpath=[x+'/lib' for x in sysp]
-libs = Split('boost_program_options boost_serialization boost_thread z')
+boostlibs=Split('program_options serialization thread')
+boostsuf=''
+if mac:
+    boostsuf='-mt'
+boostlibs=['boost_'+x+boostsuf for x in boostlibs]
+libs = boostlibs+Split('z')
 ccf = Split('-g -O3 -DHAVE_SCONS')
 env = Environment(PREFIX=GetOption('prefix'),
                       PLATFORM = platform,
@@ -32,16 +36,16 @@ env = Environment(PREFIX=GetOption('prefix'),
                       LIBS = libs,
 		      CCFLAGS = ccf)
 if mac:
-    env = Environment(ENV = os.environ,
+    #ENV = os.environ,
+    env = Environment(
                       CPPPATH = include,
                       LIBPATH = libpath,
-                      #LIBS = libs,
+                      LIBS = libs,
                       CCFLAGS = ccf,
-                      SHLINKFLAGS = '$LINKFLAGS -dynamic',
-                      SHLIBSUFFIX = '.dylib'
+#                      SHLINKFLAGS = '$LINKFLAGS -dynamic',
+        #LIBSUFFIX = '.dylib',
+#                      SHLIBSUFFIX = '.dylib'
                       )
-    env['SHLINKFLAGS'] = '$LINKFLAGS -dynamic'
-    env['SHLIBSUFFIX'] = '.dylib'
 
 # Do some autoconf-like sanity checks (http://www.scons.org/wiki/SconsAutoconf)
 conf = Configure(env)
@@ -51,6 +55,7 @@ if not conf.CheckCXX():
     Exit(1)
 if not conf.CheckFunc('printf'):
     print('!! Your compiler and/or environment is not correctly configured.')
+    print env.Dump()
     Exit(1)
 
 boost = GetOption('boost')
@@ -62,7 +67,8 @@ if boost:
 
 if not conf.CheckLib('boost_program_options',language='C++'):
    print "Boost library 'boost_program_options' not found"
-   #Exit(1)
+   print env.Dump()
+   Exit(1)
 #if not conf.CheckHeader('boost/math/special_functions/digamma.hpp'):
 #   print "Boost header 'digamma.hpp' not found"
 #   Exit(1)

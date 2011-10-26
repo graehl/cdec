@@ -141,7 +141,7 @@ struct intern_pool : Pool {
     CFind f=canonical.find(i);
     if (f!=canonical.end()) {
       Handle interned=*f;
-      canonical.erase(f);
+      canonical.erase(f); //FIXME: supposedly there's a complexity bug w/ erase in GCC tr1::unordered_set (does a linear re-scan because of singly linked list)
       destroy(f);
       if (f==i) return true;
     }
