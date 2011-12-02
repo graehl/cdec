@@ -107,7 +107,7 @@ struct intern_pool : Pool {
   typedef HASH_SET<Handle,HashDeep,EqDeep> Canonical;
   typedef typename Canonical::iterator CFind;
   typedef std::pair<CFind,bool> CInsert;
-  Canonical canonical;
+  Canonical canonical; //FIXME: construct w/ fn object state
   bool interneq(Handle &i) { // returns true if i is newly interned, false if it already existed
     CInsert i_new=canonical.insert(i);
     i=*i_new.first;

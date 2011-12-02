@@ -187,7 +187,7 @@
     // for n=size, array elements indexed by floor(n/2) + 1, floor(n/2) + 2, ... , n are all leaves for the tree, thus each is an one-element heap already
     // warning: this is many fewer instructions but, at some point (when heap doesn't fit in Lx cache) it will become slower than repeated push().
     void heapify() {
-      for (size_type i=parent(data.size()-1);i>0;--i) // starting from parent of last node, ending at first child of root (i==1)
+      for (size_type i=parent(data.size()-1);i>=0;--i) // starting from parent of last node, ending at first child of root (i==1)
         preserve_heap_property_down(i);
     }
 
